@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHART MASTER</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;700&display=swap');
+:root{
+  --void:#020408;--deep:#060d14;--panel:#0a1520;--card:#0d1e2e;--grid:#0f2233;
+  --cyan:#00e5ff;--green:#00ff9d;--red:#ff3366;--yellow:#ffd600;--orange:#ff6b35;
+  --hi:#e8f4f8;--mid:#7ab3c8;--lo:#3a6070;--border:rgba(0,229,255,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--void);color:var(--hi);font-family:'Noto Sans JP',sans-serif;display:flex;flex-direction:column;
+  background-image:linear-gradient(rgba(0,229,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.012) 1px,transparent 1px);
+  background-size:48px 48px;}
+
+/* ── HEADER ── */
+header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:7px 18px;
+  background:linear-gradient(90deg,var(--deep),rgba(0,229,255,0.04),var(--deep));border-bottom:1px solid var(--border);}
+.logo{font-family:'Share Tech Mono',monospace;font-size:17px;letter-spacing:5px;color:var(--cyan);text-shadow:0 0 16px rgba(0,229,255,.5);}
+.logo em{color:var(--green);font-style:normal;}
+.hrow{display:flex;gap:9px;align-items:center;}
+.pill{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:3px 11px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--mid);}
+.pill b{color:var(--cyan);}
+.lvbadge{border-radius:5px;padding:3px 10px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;}
+.lvbadge.bg{background:linear-gradient(135deg,rgba(0,229,255,.14),rgba(0,255,157,.08));border:1px solid var(--cyan);color:var(--cyan);}
+.lvbadge.ex{border:1px solid var(--red);color:var(--red);background:linear-gradient(135deg,rgba(255,51,102,.18),rgba(180,79,255,.12));animation:exglow 2s ease-in-out infinite;}
+@keyframes exglow{0%,100%{box-shadow:0 0 5px rgba(255,51,102,.2);}50%{box-shadow:0 0 16px rgba(255,51,102,.4);}}
+.rankhbadge{font-family:'Share Tech Mono',monospace;font-size:11px;padding:3px 10px;background:rgba(255,51,102,.1);border:1px solid rgba(255,51,102,.3);border-radius:20px;color:var(--red);}
+
+/* ── BODY LAYOUT ── */
+/* Left: chart (wide). Right: info+actions (narrow) */
+.body{flex:1;display:grid;grid-template-columns:1fr 210px;overflow:hidden;min-height:0;}
+
+/* ── LEFT: CHART AREA ── */
+.chartcol{display:flex;flex-direction:column;padding:8px 8px 8px 10px;gap:6px;overflow:hidden;min-height:0;}
+
+.chartbar{flex-shrink:0;display:flex;justify-content:space-between;align-items:center;}
+.ctitle{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;}
+.maleg{display:flex;gap:10px;align-items:center;}
+.legrow{display:flex;align-items:center;gap:4px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--mid);}
+.legline{width:18px;height:2px;border-radius:1px;}
+
+/* MAIN CHART CANVAS — takes all remaining space */
+.mainwrap{flex:1;min-height:0;position:relative;background:var(--panel);border:1px solid var(--grid);border-radius:6px;overflow:hidden;}
+#MC{display:block;width:100%;height:100%;}
+.chinfo{position:absolute;top:6px;left:62px;font-family:'Share Tech Mono',monospace;font-size:11px;
+  color:var(--mid);background:rgba(6,13,20,.9);border:1px solid var(--border);border-radius:4px;
+  padding:3px 8px;pointer-events:none;white-space:nowrap;}
+.chinfo.hidden{display:none;}
+
+/* ── RIGHT: INFO + ACTIONS ── */
+.rightcol{border-left:1px solid var(--grid);background:var(--deep);display:flex;flex-direction:column;overflow:hidden;}
+
+/* PRICE + POSITION section */
+.rsec{padding:10px 12px;border-bottom:1px solid var(--grid);flex-shrink:0;}
+.rtitle{font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:3px;color:var(--lo);text-transform:uppercase;margin-bottom:7px;}
+.bigprice{font-family:'Share Tech Mono',monospace;font-size:20px;color:var(--cyan);text-shadow:0 0 14px rgba(0,229,255,.4);margin-bottom:2px;}
+.pchg{font-size:11px;margin-bottom:7px;}
+.pchg.up{color:var(--green);}.pchg.dn{color:var(--red);}
+.icard{background:var(--card);border:1px solid var(--grid);border-radius:5px;padding:7px 9px;margin-bottom:5px;}
+.iclbl{font-size:9px;color:var(--lo);margin-bottom:2px;letter-spacing:1px;}
+.icval{font-family:'Share Tech Mono',monospace;font-size:12px;}
+.icval.p{color:var(--green);}.icval.l{color:var(--red);}.icval.n{color:var(--mid);}
+
+/* SCORE */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.sc{background:var(--card);border:1px solid var(--grid);border-radius:4px;padding:6px;text-align:center;}
+.sn{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--cyan);}
+.sl{font-size:8px;color:var(--lo);margin-top:1px;letter-spacing:1px;}
+
+/* RANK */
+.rankcard{background:var(--card);border:1px solid var(--grid);border-radius:5px;padding:8px;margin-bottom:4px;}
+.rcardtop{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.rico{font-size:17px;}
+.rntxt{flex:1;}
+.rnm{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;}
+.rrow2{display:flex;justify-content:space-between;margin-top:1px;}
+.rexpl{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--lo);}
+.rcp{font-family:'Share Tech Mono',monospace;font-size:9px;padding:1px 4px;border-radius:2px;}
+.rcp.free{color:var(--lo);border:1px solid var(--grid);}
+.rcp.cost{color:var(--red);background:rgba(255,51,102,.1);border:1px solid rgba(255,51,102,.25);}
+.rbar{width:100%;height:3px;background:var(--panel);border-radius:2px;overflow:hidden;}
+.rbfill{height:100%;border-radius:2px;transition:width .5s ease;}
+.rstats{display:flex;justify-content:space-between;margin-top:4px;}
+.rstat{text-align:center;}
+.rstatv{font-family:'Share Tech Mono',monospace;font-size:11px;}
+.rstatl{font-size:8px;color:var(--lo);letter-spacing:1px;}
+
+/* TRADE LOG */
+.tlog{flex:1;overflow-y:auto;padding:6px 10px;min-height:0;}
+.te{display:flex;justify-content:space-between;padding:4px 6px;border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:10px;margin-bottom:2px;background:var(--card);color:var(--lo);}
+.te.buy{border-left:2px solid var(--green);color:var(--green);}
+.te.sell{border-left:2px solid var(--red);}
+.te.sell.p{color:var(--green);}.te.sell.l{color:var(--red);}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ACTION BUTTONS — big, clear, unmissable
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.actions{flex-shrink:0;padding:10px;display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--grid);}
+
+/* BUY */
+.btn-buy{
+  padding:14px 8px;border:none;border-radius:8px;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;letter-spacing:3px;
+  background:linear-gradient(135deg,rgba(0,180,120,.3),rgba(0,255,157,.18));
+  border:2px solid var(--green);color:var(--green);
+  text-shadow:0 0 12px rgba(0,255,157,.5);
+  box-shadow:0 0 16px rgba(0,255,157,.12),inset 0 1px 0 rgba(0,255,157,.2);
+  transition:all .12s;
+}
+.btn-buy:hover{background:linear-gradient(135deg,rgba(0,180,120,.45),rgba(0,255,157,.3));box-shadow:0 0 28px rgba(0,255,157,.3);}
+.btn-buy:active{transform:scale(.96);}
+
+/* SELL */
+.btn-sell{
+  padding:14px 8px;border:none;border-radius:8px;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;letter-spacing:3px;
+  background:linear-gradient(135deg,rgba(180,0,50,.3),rgba(255,51,102,.18));
+  border:2px solid var(--red);color:var(--red);
+  text-shadow:0 0 12px rgba(255,51,102,.5);
+  box-shadow:0 0 16px rgba(255,51,102,.12),inset 0 1px 0 rgba(255,51,102,.2);
+  transition:all .12s;
+}
+.btn-sell:hover{background:linear-gradient(135deg,rgba(180,0,50,.45),rgba(255,51,102,.3));box-shadow:0 0 28px rgba(255,51,102,.3);}
+.btn-sell:active{transform:scale(.96);}
+
+/* HOLD — deliberately understated so BUY/SELL pop */
+.btn-hold{
+  padding:9px 8px;border:none;border-radius:6px;cursor:pointer;
+  font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;
+  background:transparent;border:1px solid var(--lo);color:var(--lo);
+  transition:all .12s;
+}
+.btn-hold:hover{border-color:var(--mid);color:var(--mid);}
+.btn-hold:active{transform:scale(.97);}
+
+/* Position indicator strip above buttons */
+.pos-strip{
+  padding:6px 10px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;
+  text-align:center;border:1px solid var(--grid);background:var(--card);color:var(--lo);
+  transition:all .2s;
+}
+.pos-strip.long{border-color:rgba(0,255,157,.5);background:rgba(0,255,157,.06);color:var(--green);}
+.pos-strip.short{border-color:rgba(255,51,102,.5);background:rgba(255,51,102,.06);color:var(--red);}
+
+/* key hint */
+.keyhint{text-align:center;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--lo);margin-top:-2px;}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;
+  background:var(--void);background-image:linear-gradient(rgba(0,229,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.012) 1px,transparent 1px);background-size:48px 48px;}
+.screen.hidden{display:none;}
+.stitle{font-family:'Share Tech Mono',monospace;font-size:42px;letter-spacing:8px;color:var(--cyan);
+  text-shadow:0 0 40px rgba(0,229,255,.6);margin-bottom:6px;animation:glitch 5s infinite;}
+@keyframes glitch{0%,92%,100%{clip-path:none;transform:none;}93%{clip-path:polygon(0 25%,100% 25%,100% 45%,0 45%);transform:translateX(-3px);}94%{clip-path:polygon(0 60%,100% 60%,100% 78%,0 78%);transform:translateX(3px);}95%{clip-path:none;}}
+.ssub{font-size:13px;color:var(--mid);margin-bottom:28px;letter-spacing:4px;}
+.lvrow{display:flex;gap:12px;margin-bottom:28px;}
+.lvcard{width:165px;padding:16px;background:var(--card);border:1px solid var(--grid);border-radius:9px;cursor:pointer;transition:all .2s;text-align:center;}
+.lvcard:hover,.lvcard.sel{border-color:var(--cyan);background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(0,255,157,.05));transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,229,255,.16);}
+.lvcard.selex{border-color:var(--red)!important;background:linear-gradient(135deg,rgba(255,51,102,.12),rgba(180,79,255,.08))!important;box-shadow:0 8px 22px rgba(255,51,102,.16)!important;}
+.lvico{font-size:28px;margin-bottom:7px;}
+.lvnam{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;margin-bottom:4px;}
+.lvdsc{font-size:11px;color:var(--lo);line-height:1.5;}
+.exrprev{margin-top:7px;padding:4px 6px;background:rgba(255,51,102,.1);border:1px solid rgba(255,51,102,.25);border-radius:3px;font-size:10px;color:var(--red);}
+.startbtn{padding:12px 44px;background:transparent;border:1px solid var(--cyan);border-radius:6px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:4px;color:var(--cyan);transition:all .2s;box-shadow:0 0 16px rgba(0,229,255,.1);}
+.startbtn:hover{background:rgba(0,229,255,.08);box-shadow:0 0 30px rgba(0,229,255,.25);transform:scale(1.03);}
+
+/* RESULT */
+.resscreen{position:fixed;inset:0;z-index:1000;background:var(--void);overflow-y:auto;
+  background-image:linear-gradient(rgba(0,229,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.012) 1px,transparent 1px);background-size:48px 48px;}
+.resscreen.hidden{display:none;}
+.resinner{max-width:680px;margin:0 auto;padding:32px 20px;display:flex;flex-direction:column;align-items:center;}
+.grade{font-family:'Share Tech Mono',monospace;font-size:80px;animation:gpulse 2s ease-in-out infinite;margin-bottom:6px;}
+@keyframes gpulse{0%,100%{text-shadow:0 0 40px currentColor;}50%{text-shadow:0 0 80px currentColor,0 0 120px currentColor;}}
+.fbtext{font-size:13px;color:var(--mid);margin-bottom:22px;text-align:center;line-height:1.7;max-width:500px;}
+.resgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;margin-bottom:18px;}
+.rcard{background:var(--card);border:1px solid var(--grid);border-radius:8px;padding:14px;text-align:center;}
+.rcard.hi{border-color:var(--cyan);background:linear-gradient(135deg,rgba(0,229,255,.1),transparent);}
+.rcardv{font-family:'Share Tech Mono',monospace;font-size:22px;margin-bottom:3px;}
+.rcardl{font-size:10px;color:var(--lo);letter-spacing:1px;}
+/* Scoring breakdown */
+.scorebreakdown{width:100%;background:var(--card);border:1px solid var(--grid);border-radius:8px;padding:14px 18px;margin-bottom:18px;}
+.sbrow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--grid);font-size:12px;color:var(--mid);}
+.sbrow:last-child{border-bottom:none;padding-top:8px;font-size:14px;font-weight:bold;}
+.sbrow b{font-family:'Share Tech Mono',monospace;}
+.sbrow b.pos{color:var(--green);}.sbrow b.neg{color:var(--red);}.sbrow b.cy{color:var(--cyan);}
+/* EXP card */
+.expcard{width:100%;background:linear-gradient(135deg,rgba(255,51,102,.07),rgba(180,79,255,.05));border:1px solid rgba(255,51,102,.28);border-radius:9px;padding:14px 18px;margin-bottom:18px;}
+.exptitle{font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:600;letter-spacing:3px;color:var(--red);text-transform:uppercase;margin-bottom:10px;}
+.exprow{display:flex;justify-content:space-between;align-items:center;}
+.expbd{display:flex;gap:16px;align-items:center;}
+.expi{text-align:center;}
+.expiv{font-family:'Share Tech Mono',monospace;font-size:15px;}
+.expil{font-size:9px;color:var(--lo);}
+.exparr{color:var(--lo);font-size:16px;}
+.expnet{font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:bold;}
+.expnet.pos{color:var(--green);}.expnet.neg{color:var(--red);}
+.rchgrow{margin-top:8px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mid);}
+.rchip{font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:3px;}
+.btnrow{display:flex;gap:12px;}
+.rbtn{padding:10px 26px;background:transparent;border-radius:6px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;transition:all .2s;}
+.rbtn.c{border:1px solid var(--cyan);color:var(--cyan);}.rbtn.c:hover{background:rgba(0,229,255,.1);}
+.rbtn.g{border:1px solid var(--green);color:var(--green);}.rbtn.g:hover{background:rgba(0,255,157,.1);}
+
+/* Notification */
+.notif{position:fixed;top:50px;left:50%;transform:translateX(-50%);padding:10px 22px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;letter-spacing:2px;z-index:500;pointer-events:none;transition:all .25s;}
+.notif.buy{background:rgba(0,180,120,.2);border:1px solid var(--green);color:var(--green);box-shadow:0 0 20px rgba(0,255,157,.25);}
+.notif.sell{background:rgba(180,0,50,.2);border:1px solid var(--red);color:var(--red);box-shadow:0 0 20px rgba(255,51,102,.25);}
+.notif.hold{background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.25);color:var(--lo);}
+.notif.hidden{opacity:0;top:40px;}
+
+/* RankUp */
+.ruov{position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(2,4,8,.92);pointer-events:none;opacity:0;transition:opacity .4s;}
+.ruov.show{opacity:1;}
+.rulbl{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:8px;color:var(--lo);margin-bottom:12px;}
+.ruico{font-size:64px;animation:rb .5s cubic-bezier(.34,1.56,.64,1) both;}
+.runam{font-family:'Rajdhani',sans-serif;font-size:48px;font-weight:700;letter-spacing:6px;margin-top:6px;animation:rs .6s cubic-bezier(.34,1.56,.64,1) .1s both;}
+@keyframes rb{0%{transform:translateY(28px) scale(.5);opacity:0;}100%{transform:translateY(0) scale(1);opacity:1;}}
+@keyframes rs{0%{transform:scale(.6);opacity:0;}100%{transform:scale(1);opacity:1;}}
+
+@media(max-width:800px){
+  .body{grid-template-columns:1fr;}
+  .rightcol{border-left:none;border-top:1px solid var(--grid);max-height:300px;}
+  .lvrow{flex-direction:column;}.lvcard{width:260px;}
+  .resgrid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- START SCREEN -->
+<div id="SS" class="screen">
+  <div class="stitle">CHART<em style="color:var(--green);font-style:normal">MASTER</em></div>
+  <div class="ssub">テクニカル分析トレーニング</div>
+  <div class="lvrow">
+    <div class="lvcard sel" onclick="selLv(1,this)">
+      <div class="lvico">📊</div><div class="lvnam">BEGINNER</div>
+      <div class="lvdsc">明確なトレンド<br>ノイズ少<br>MA乖離わかりやすい</div>
+    </div>
+    <div class="lvcard" onclick="selLv(2,this)">
+      <div class="lvico">📈</div><div class="lvnam">ADVANCED</div>
+      <div class="lvdsc">複合トレンド<br>フェイクシグナル<br>出来高変動大</div>
+    </div>
+    <div class="lvcard" onclick="selLv(3,this)">
+      <div class="lvico">⚡</div><div class="lvnam">EXPERT</div>
+      <div class="lvdsc">プロ級ノイズ<br>採点極めて厳しい<br>ランクシステム搭載</div>
+      <div class="exrprev" id="srprev">🥉 BRONZE — 0 EXP</div>
+    </div>
+  </div>
+  <button class="startbtn" onclick="startGame()">▶ START</button>
+  <div style="margin-top:12px;font-size:11px;color:var(--lo);letter-spacing:2px;">5チャート × 30本 ／ MA + 出来高で判断 ／ 採点：利益率 × タイミング精度</div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="RES" class="resscreen hidden">
+  <div class="resinner">
+    <div class="grade" id="GRD">S</div>
+    <div class="fbtext" id="FBTXT"></div>
+    <div id="EXPCARD"></div>
+    <div class="resgrid" id="RESGRID"></div>
+    <div class="scorebreakdown" id="SCOREBD"></div>
+    <div class="btnrow">
+      <button class="rbtn g" onclick="restartGame()">⟳ もう一度</button>
+      <button class="rbtn c" onclick="backToTitle()">← タイトル</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<header>
+  <div class="logo">CHART<em>MASTER</em></div>
+  <div class="hrow">
+    <div class="pill">問題 <b id="HC">1</b>/5</div>
+    <div class="pill">バー <b id="HB">1</b>/30</div>
+    <div class="pill">P&L <b id="HP" style="color:var(--mid)">±0%</b></div>
+    <div class="lvbadge bg" id="HLVL">BEGINNER</div>
+    <div class="rankhbadge" id="HRANK" style="display:none"></div>
+  </div>
+</header>
+
+<div class="body">
+  <!-- CHART COLUMN -->
+  <div class="chartcol">
+    <div class="chartbar">
+      <div class="ctitle" id="CTITLE">BTC/USDT — 1時間足</div>
+      <div class="maleg">
+        <div class="legrow"><div class="legline" style="background:#ffd600"></div>MA20</div>
+        <div class="legrow"><div class="legline" style="background:#ff6b35"></div>MA50</div>
+        <div class="legrow"><div class="legline" style="background:#b44fff"></div>MA100</div>
+        <div class="legrow" style="margin-left:4px">
+          <div style="width:8px;height:8px;border-radius:50%;background:rgba(0,229,255,.6)"></div>買
+        </div>
+        <div class="legrow">
+          <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,51,102,.6)"></div>売
+        </div>
+      </div>
+    </div>
+    <!-- The big chart — flex:1 eats all vertical space -->
+    <div class="mainwrap">
+      <canvas id="MC"></canvas>
+      <div class="chinfo hidden" id="CHI"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="rightcol">
+    <!-- Price & position -->
+    <div class="rsec">
+      <div class="rtitle">価格情報</div>
+      <div class="bigprice" id="BPRICE">—</div>
+      <div class="pchg" id="PCHG">—</div>
+      <div class="icard"><div class="iclbl">ポジション</div><div class="icval n" id="POSV">なし</div></div>
+      <div class="icard"><div class="iclbl">含み損益</div><div class="icval n" id="UPLV">± 0</div></div>
+      <div class="icard"><div class="iclbl">確定損益（累計）</div><div class="icval n" id="RPLV">± 0</div></div>
+    </div>
+
+    <!-- Score -->
+    <div class="rsec">
+      <div class="rtitle">スコア</div>
+      <div class="sg">
+        <div class="sc"><div class="sn" id="SCT">0</div><div class="sl">SCORE</div></div>
+        <div class="sc"><div class="sn" id="SCWR">0%</div><div class="sl">WIN RATE</div></div>
+        <div class="sc"><div class="sn" id="SCTC">0</div><div class="sl">TRADES</div></div>
+        <div class="sc"><div class="sn" id="SCRG" style="color:var(--green)">S</div><div class="sl">RISK</div></div>
+      </div>
+    </div>
+
+    <!-- Rank (Expert only) -->
+    <div class="rsec" id="RSEC" style="display:none">
+      <div class="rtitle">ランク <span style="font-size:8px;background:rgba(255,51,102,.15);color:var(--red);border:1px solid rgba(255,51,102,.3);border-radius:2px;padding:1px 4px;letter-spacing:1px">EXPERT</span></div>
+      <div class="rankcard">
+        <div class="rcardtop">
+          <div class="rico" id="RI">🥉</div>
+          <div class="rntxt">
+            <div class="rnm" id="RN">BRONZE</div>
+            <div class="rrow2">
+              <span class="rexpl" id="REL">0/500</span>
+              <span class="rcp free" id="RCP">±0</span>
+            </div>
+          </div>
+        </div>
+        <div class="rbar"><div class="rbfill" id="RBF" style="width:0%"></div></div>
+      </div>
+      <div class="rstats">
+        <div class="rstat"><div class="rstatv" id="RTE" style="color:var(--cyan)">0</div><div class="rstatl">累計EXP</div></div>
+        <div class="rstat"><div class="rstatv" id="RGP" style="color:var(--mid)">0</div><div class="rstatl">プレイ数</div></div>
+        <div class="rstat"><div class="rstatv" id="RBS" style="color:var(--yellow)">—</div><div class="rstatl">最高</div></div>
+      </div>
+    </div>
+
+    <!-- Trade log -->
+    <div class="tlog" id="TLOG"></div>
+
+    <!-- ━━━ ACTION BUTTONS ━━━ -->
+    <div class="actions">
+      <div class="pos-strip" id="POSSTRIP">ポジションなし</div>
+
+      <button class="btn-buy" onclick="act('buy')">
+        ▲ &nbsp;BUY
+      </button>
+
+      <button class="btn-sell" onclick="act('sell')">
+        ▼ &nbsp;SELL
+      </button>
+
+      <button class="btn-hold" onclick="act('hold')">
+        ◆ &nbsp;HOLD（次のバーへ）
+      </button>
+
+      <div class="keyhint">↑ BUY &nbsp;｜&nbsp; ↓ SELL &nbsp;｜&nbsp; Space HOLD</div>
+    </div>
+  </div>
+</div>
+
+<div class="notif hidden" id="NF"></div>
+<div class="ruov" id="RUO">
+  <div class="rulbl">✦ rank up ✦</div>
+  <div class="ruico" id="RUICO">⭐</div>
+  <div class="runam" id="RUNAM" style="color:var(--cyan)">SILVER</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// RANKS
+// ═══════════════════════════════════════
+const RANKS=[
+  {name:'BRONZE',      icon:'🥉',min:0,   max:499,      cost:0, color:'#cd7f32'},
+  {name:'SILVER',      icon:'🥈',min:500, max:999,      cost:3, color:'#c0c0c0'},
+  {name:'GOLD',        icon:'🥇',min:1000,max:1499,     cost:5, color:'#ffd700'},
+  {name:'PLATINUM',    icon:'💠',min:1500,max:1999,     cost:8, color:'#00e5ff'},
+  {name:'DIAMOND',     icon:'💎',min:2000,max:2499,     cost:10,color:'#b9f2ff'},
+  {name:'ELITE',       icon:'⚡',min:2500,max:2999,     cost:15,color:'#ff6b35'},
+  {name:'MASTER',      icon:'🔥',min:3000,max:3499,     cost:20,color:'#ff3366'},
+  {name:'GRAND MASTER',icon:'👁',min:3500,max:3999,     cost:25,color:'#b44fff'},
+  {name:'LEGEND',      icon:'🏆',min:4000,max:4999,     cost:30,color:'#ffd600'},
+  {name:'MONK',        icon:'🌙',min:5000,max:5999,     cost:35,color:'#00ff9d'},
+  {name:'HERMIT',      icon:'🌌',min:6000,max:6999,     cost:40,color:'#00c8ff'},
+  {name:'IMMORTAL',    icon:'♾️',min:7000,max:7999,     cost:50,color:'#ff00aa'},
+  {name:'UNLEASHED',   icon:'⚜️',min:8000,max:Infinity, cost:60,color:'#ffffff'},
+];
+const getRank=e=>{for(let i=RANKS.length-1;i>=0;i--)if(e>=RANKS[i].min)return{...RANKS[i],idx:i};return{...RANKS[0],idx:0};};
+let ED=(()=>{try{const s=localStorage.getItem('cm_v7');if(s)return JSON.parse(s);}catch(e){}return{exp:0,games:0,best:null};})();
+const saveED=()=>{try{localStorage.setItem('cm_v7',JSON.stringify(ED));}catch(e){}};
+
+// ═══════════════════════════════════════
+// SCENARIOS
+// ═══════════════════════════════════════
+const SCENARIOS=[
+  {name:'BTC/USDT',base:42000,tf:'1時間足', type:'uptrend'},
+  {name:'ETH/USDT',base:2600, tf:'30分足',  type:'downtrend'},
+  {name:'SOL/USDT',base:95,   tf:'4時間足', type:'ranging'},
+  {name:'BNB/USDT',base:310,  tf:'1時間足', type:'breakout'},
+  {name:'XRP/USDT',base:0.62, tf:'4時間足', type:'reversal'},
+];
+
+function randn(){let u,v;do{u=Math.random();v=Math.random();}while(!u);return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function rnd(a,b){return a+(b-a)*Math.random();}
+
+function genCandles(sc,lv){
+  const N=30;
+  const baseNoise=lv===1?.0035:lv===2?.008:.014;
+  const candles=[];
+  let p=sc.base;
+
+  // Volume: base + pattern-driven spikes
+  const baseVol=1000;
+
+  for(let i=0;i<N;i++){
+    const t=i/N;
+    let trend=0;
+    switch(sc.type){
+      case'uptrend':
+        trend=.005*(1+.5*Math.sin(t*Math.PI));
+        // pullback zone
+        if(i>10&&i<14) trend=-Math.abs(trend)*.6;
+        break;
+      case'downtrend':
+        trend=-.004*(1+.3*Math.cos(t*Math.PI));
+        if(i>12&&i<16) trend=Math.abs(trend)*.5;
+        break;
+      case'ranging':
+        trend=.004*Math.sin(t*Math.PI*4);
+        break;
+      case'breakout':
+        trend=i<18?randn()*baseNoise*.4:.009+randn()*baseNoise*.3;
+        break;
+      case'reversal':
+        trend=i<16?-.005*(1-t*1.2):.007*(t-.5)*2;
+        break;
+    }
+    if(lv>=2&&Math.random()<.12)trend*=-1.3;
+    if(lv>=3&&Math.random()<.1) trend+=(Math.random()-.5)*.012;
+
+    const n1=randn()*baseNoise;
+    const o=p;
+    p=p*(1+trend+n1);
+    const c=p;
+    const wickA=Math.abs(c-o)*rnd(.3,1.6);
+    const wickB=c*baseNoise*rnd(0,.55);
+    const h=Math.max(o,c)+wickA+wickB;
+    const l=Math.min(o,c)-wickA*.5-wickB*.3;
+
+    // Volume: spike on strong moves, low on consolidation
+    const bodyPct=Math.abs(c-o)/o;
+    let vol=baseVol*(1+bodyPct*80+randn()*.3);
+    // breakout spike
+    if(sc.type==='breakout'&&i>=18) vol*=rnd(1.5,3.5);
+    // reversal climax volume
+    if(sc.type==='reversal'&&(i===15||i===16)) vol*=rnd(2,4);
+    vol=Math.max(100,vol);
+
+    const now=new Date();now.setHours(now.getHours()-(N-i));
+    candles.push({o,h,l:Math.max(l,p*.0001),c,v:Math.round(vol),t:now});
+  }
+  return candles;
+}
+
+// ═══════════════════════════════════════
+// INDICATORS
+// ═══════════════════════════════════════
+const calcMA=(cs,p)=>cs.map((_,i)=>i<p-1?null:cs.slice(i-p+1,i+1).reduce((s,c)=>s+c.c,0)/p);
+
+// ═══════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════
+let G={lv:1,ci:0,bi:0,cs:[],ind:{},pos:null,rpnl:0,
+  trades:[],wins:0,losses:0,cl:0,mcl:0,score:0,
+  // for timing score
+  totalTimingPenalty:0,run:false};
+let scenarios=[],selLvl=1;
+
+// ═══════════════════════════════════════
+// SCORING — strict
+// ═══════════════════════════════════════
+/*
+  Each trade is scored:
+  1) Profit component (can be negative): pnl * weight
+  2) Timing penalty:
+     - Entering against trend (price above MA20 AND MA50 but you sell, or vice versa) → heavy penalty
+     - Holding too long in drawdown → penalty
+     - Chasing (entering after a big candle away from MA) → penalty
+
+  Final score = sum of trade scores, clamped 0-100, then quality multiplier
+*/
+
+function trendAtBar(i){
+  const ma20=G.ind.ma20[i],ma50=G.ind.ma50[i];
+  if(ma20===null||ma50===null)return'neutral';
+  const price=G.cs[i].c;
+  if(price>ma20&&ma20>ma50)return'up';
+  if(price<ma20&&ma20<ma50)return'down';
+  return'neutral';
+}
+
+function maDeviation(i){
+  // How far price is from MA20, as % of price
+  const ma20=G.ind.ma20[i];
+  if(!ma20)return 0;
+  return Math.abs(G.cs[i].c-ma20)/G.cs[i].c;
+}
+
+function volumeStrength(i){
+  // Volume relative to recent average
+  if(i<3)return 1;
+  const avgVol=G.cs.slice(Math.max(0,i-5),i).reduce((s,c)=>s+c.v,0)/Math.min(i,5);
+  return G.cs[i].v/avgVol;
+}
+
+function calcTradeScore(trade){
+  const {bar,type,pnl,entryBar,entryType}=trade;
+  if(pnl===null)return{pts:0,penalties:[]};
+
+  const penalties=[];
+  let pts=0;
+
+  // 1. Profit/loss (0-60 pts range)
+  pts+=pnl*12; // +5% profit = 60pts base
+
+  // 2. Timing penalties
+  if(entryBar!==undefined){
+    const trend=trendAtBar(entryBar);
+    const dev=maDeviation(entryBar);
+    const volStr=volumeStrength(entryBar);
+
+    // Entering against the dominant trend (big penalty)
+    if(trend==='up'&&entryType==='short'){
+      penalties.push({txt:'トレンドに逆らった売り',pts:-20});pts-=20;
+    }
+    if(trend==='down'&&entryType==='long'){
+      penalties.push({txt:'トレンドに逆らった買い',pts:-20});pts-=20;
+    }
+
+    // Chasing: entering when price is >3% from MA20 (overextended)
+    if(dev>0.03){
+      const pen=Math.round(dev*200);
+      penalties.push({txt:`MA20から乖離しすぎ(${(dev*100).toFixed(1)}%)`,pts:-pen});
+      pts-=pen;
+    }
+
+    // Entering on low volume breakout (fake)
+    if(G.cs[entryBar].c>G.ind.ma20[entryBar]&&volStr<0.7){
+      penalties.push({txt:'出来高不足でのエントリー',pts:-10});pts-=10;
+    }
+
+    // Bonus: entering on high volume with trend
+    if(volStr>1.5&&((trend==='up'&&entryType==='long')||(trend==='down'&&entryType==='short'))){
+      const bonus=Math.round(volStr*5);
+      penalties.push({txt:`出来高確認エントリー +${bonus}pt`,pts:bonus});pts+=bonus;
+    }
+  }
+
+  return{pts:Math.round(pts),penalties};
+}
+
+function calcFinalScore(){
+  let total=0;
+  const details=[];
+  G.trades.forEach((tr,i)=>{
+    if(tr.pnl===null)return;
+    const{pts,penalties}=calcTradeScore(tr);
+    total+=pts;
+    details.push({i,pts,penalties,pnl:tr.pnl});
+  });
+
+  // Win rate bonus/penalty
+  const tot=G.wins+G.losses;
+  const wr=tot>0?G.wins/tot:0;
+  let wrBonus=0;
+  if(wr>=0.7)wrBonus=15;
+  else if(wr>=0.5)wrBonus=5;
+  else if(wr<0.3&&tot>2)wrBonus=-15;
+
+  // Overtrading penalty (>8 trades for 5 charts)
+  let overtrade=0;
+  if(tot>8){overtrade=-(tot-8)*5;}
+
+  const raw=total+wrBonus+overtrade;
+  const clamped=Math.max(0,Math.min(100,raw));
+  return{score:clamped,details,wrBonus,overtrade,tot,wr};
+}
+
+// ═══════════════════════════════════════
+// DRAWING
+// ═══════════════════════════════════════
+const $=id=>document.getElementById(id);
+
+function getFullRange(){
+  if(!G.cs.length)return{mn:0,mx:1};
+  const all=G.cs.flatMap(c=>[c.h,c.l]);
+  let mn=Math.min(...all),mx=Math.max(...all);
+  const r=mx-mn;mn-=r*.05;mx+=r*.05;
+  return{mn,mx};
+}
+
+function drawAll(){
+  const canvas=$('MC');
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.clientWidth;
+  canvas.height=wrap.clientHeight;
+  const W=canvas.width,H=canvas.height;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  const N=G.cs.length; // always 30
+  const vis=G.cs.slice(0,G.bi+1);
+
+  // Layout: price chart gets ~72%, volume gets ~20%, time axis 8%
+  const pL=62,pR=10;
+  const pT=10;
+  const volH=Math.round(H*.18);
+  const timeH=18;
+  const priceH=H-pT-volH-timeH-6;
+  const cW=W-pL-pR;
+
+  // Fixed price range
+  const{mn,mx}=getFullRange();
+  const prng=mx-mn||1;
+  const toX=i=>pL+(i+.5)*(cW/N);
+  const toPY=p=>pT+priceH-(((p-mn)/prng)*priceH);
+
+  // ── Price grid ──
+  const gridN=6;
+  ctx.lineWidth=1;
+  for(let g=0;g<=gridN;g++){
+    const y=pT+(g/gridN)*priceH;
+    ctx.strokeStyle='rgba(15,34,51,.85)';
+    ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W-pR,y);ctx.stroke();
+    const pr=mx-(g/gridN)*prng;
+    const lbl=pr>10000?pr.toFixed(0):pr>100?pr.toFixed(1):pr>1?pr.toFixed(3):pr.toFixed(5);
+    ctx.fillStyle='rgba(58,96,112,.75)';ctx.font='10px Share Tech Mono';ctx.textAlign='right';
+    ctx.fillText(lbl,pL-4,y+3);
+  }
+
+  // ── Volume section ──
+  const volY=pT+priceH+6;
+  const volMax=Math.max(...G.cs.slice(0,vis.length).map(c=>c.v),1);
+  // Volume grid line
+  ctx.strokeStyle='rgba(15,34,51,.6)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pL,volY);ctx.lineTo(W-pR,volY);ctx.stroke();
+  ctx.fillStyle='rgba(58,96,112,.5)';ctx.font='9px Share Tech Mono';ctx.textAlign='right';
+  ctx.fillText('VOL',pL-4,volY+9);
+
+  vis.forEach((c,i)=>{
+    const bh=Math.max(2,(c.v/volMax)*volH);
+    const x=toX(i);
+    const bw=Math.max(2,(cW/N)*.7);
+    const up=c.c>=c.o;
+    ctx.fillStyle=up?'rgba(0,200,150,.45)':'rgba(255,51,102,.45)';
+    ctx.fillRect(x-bw/2,volY+volH-bh,bw,bh);
+  });
+
+  // ── Time axis ──
+  const timeY=volY+volH+2;
+  ctx.fillStyle='rgba(58,96,112,.6)';ctx.font='9px Share Tech Mono';ctx.textAlign='center';
+  const step=Math.max(1,Math.floor(N/8));
+  for(let i=0;i<vis.length;i+=step){
+    const t=vis[i].t;
+    ctx.fillText(`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`,toX(i),timeY+12);
+  }
+
+  // ── Future bars ghost ──
+  ctx.globalAlpha=.04;
+  const bwg=Math.max(2,(cW/N)*.68);
+  for(let i=vis.length;i<N;i++){
+    ctx.fillStyle='#7ab3c8';
+    ctx.fillRect(toX(i)-bwg/2,pT,bwg,priceH);
+  }
+  ctx.globalAlpha=1;
+
+  // ── MAs ──
+  [{d:G.ind.ma20,c:'#ffd600',w:1.2},{d:G.ind.ma50,c:'#ff6b35',w:1.5},{d:G.ind.ma100,c:'#b44fff',w:1.8}].forEach(({d,c,w})=>{
+    if(!d)return;ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();let f=true;
+    d.slice(0,vis.length).forEach((v,i)=>{if(v===null)return;const x=toX(i),y=toPY(v);if(f){ctx.moveTo(x,y);f=false;}else ctx.lineTo(x,y);});
+    ctx.stroke();
+  });
+
+  // ── Candles ──
+  const bw=Math.max(3,(cW/N)*.68);
+  vis.forEach((c,i)=>{
+    const x=toX(i);const up=c.c>=c.o;const col=up?'#00c896':'#ff3366';
+    ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,toPY(c.h));ctx.lineTo(x,toPY(c.l));ctx.stroke();
+    const bTop=toPY(Math.max(c.o,c.c)),bBot=toPY(Math.min(c.o,c.c));
+    ctx.globalAlpha=.88;ctx.fillRect(x-bw/2,bTop,bw,Math.max(1.5,bBot-bTop));ctx.globalAlpha=1;
+  });
+
+  // ── Trade markers ──
+  G.trades.forEach(tr=>{
+    const drawM=(bi,col,isEntry)=>{
+      if(bi>=vis.length)return;
+      const c=G.cs[bi];const x=toX(bi);
+      const y=isEntry?toPY(c.l)-12:toPY(c.h)+12;
+      // vertical guide line (subtle)
+      ctx.save();ctx.setLineDash([2,4]);ctx.strokeStyle=col+'44';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x,pT);ctx.lineTo(x,pT+priceH);ctx.stroke();ctx.restore();
+      // arrow
+      ctx.beginPath();
+      if(isEntry){ctx.moveTo(x,y+8);ctx.lineTo(x-5,y);ctx.lineTo(x+5,y);ctx.closePath();}
+      else{ctx.moveTo(x,y-8);ctx.lineTo(x-5,y);ctx.lineTo(x+5,y);ctx.closePath();}
+      ctx.fillStyle=col+'cc';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+    };
+    if(tr.type==='buy')  drawM(tr.bar,'#00ff9d',true);
+    if(tr.type==='sell') drawM(tr.bar,'#ff3366',false);
+    // PnL shading between entry/exit pair
+    if(tr.entryBar!==undefined&&tr.bar!==tr.entryBar){
+      const eb=tr.entryBar,xb=tr.bar;
+      if(eb<vis.length&&xb<vis.length){
+        const ep=G.cs[eb].c,xp=G.cs[xb].c;
+        const col=xp>=ep?'rgba(0,255,157,0.07)':'rgba(255,51,102,0.07)';
+        const x1=toX(eb),x2=toX(xb);
+        ctx.fillStyle=col;ctx.fillRect(x1,pT,x2-x1,priceH);
+      }
+    }
+  });
+
+  // Current bar glow
+  const cx=toX(vis.length-1);
+  ctx.save();ctx.setLineDash([3,5]);ctx.strokeStyle='rgba(0,229,255,.18)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cx,pT);ctx.lineTo(cx,pT+priceH);ctx.stroke();ctx.restore();
+}
+
+// ═══════════════════════════════════════
+// PANEL UPDATE
+// ═══════════════════════════════════════
+function updatePanel(){
+  const vis=G.cs.slice(0,G.bi+1);
+  if(!vis.length)return;
+  const last=vis.at(-1),prev=vis.length>1?vis.at(-2):last;
+  const chg=((last.c-prev.c)/prev.c)*100;
+  const fmt=v=>v>10000?v.toFixed(0):v>100?v.toFixed(2):v>1?v.toFixed(4):v.toFixed(6);
+  $('BPRICE').textContent=fmt(last.c);
+  const pe=$('PCHG');pe.textContent=`${chg>=0?'+':''}${chg.toFixed(2)}%`;pe.className='pchg '+(chg>=0?'up':'dn');
+
+  // Position strip + unrealized
+  if(G.pos){
+    const u=G.pos.type==='long'?((last.c-G.pos.ep)/G.pos.ep)*100:((G.pos.ep-last.c)/G.pos.ep)*100;
+    const ue=$('UPLV');ue.textContent=`${u>=0?'+':''}${u.toFixed(2)}%`;ue.className='icval '+(u>0?'p':u<0?'l':'n');
+    $('POSV').textContent=G.pos.type==='long'?`🟢 ロング @ ${fmt(G.pos.ep)}`:`🔴 ショート @ ${fmt(G.pos.ep)}`;
+    // Position strip
+    const ps=$('POSSTRIP');
+    if(G.pos.type==='long'){ps.textContent=`🟢 ロング保有中 ${u>=0?'+':''}${u.toFixed(2)}%`;ps.className='pos-strip long';}
+    else{ps.textContent=`🔴 ショート保有中 ${u>=0?'+':''}${u.toFixed(2)}%`;ps.className='pos-strip short';}
+  }else{
+    $('UPLV').textContent='± 0';$('UPLV').className='icval n';$('POSV').textContent='なし';
+    $('POSSTRIP').textContent='ポジションなし';$('POSSTRIP').className='pos-strip';
+  }
+
+  const rp=$('RPLV');rp.textContent=`${G.rpnl>=0?'+':''}${G.rpnl.toFixed(2)}%`;rp.className='icval '+(G.rpnl>0?'p':G.rpnl<0?'l':'n');
+
+  const tot=G.wins+G.losses,wr=tot>0?Math.round(G.wins/tot*100):0;
+  $('SCT').textContent=G.score;$('SCWR').textContent=`${wr}%`;$('SCTC').textContent=tot;
+  const m=G.mcl;const rg=m===0?'S':m<=1?'A':m<=2?'B':m<=3?'C':'D';
+  const rgc={S:'var(--green)',A:'var(--cyan)',B:'var(--yellow)',C:'var(--orange)',D:'var(--red)'};
+  $('SCRG').textContent=rg;$('SCRG').style.color=rgc[rg]||'var(--mid)';
+
+  $('HC').textContent=G.ci+1;$('HB').textContent=G.bi+1;
+  const hp=$('HP');hp.textContent=`${G.rpnl>=0?'+':''}${G.rpnl.toFixed(2)}%`;hp.style.color=G.rpnl>=0?'var(--green)':'var(--red)';
+  if(G.lv===3)updateRankUI();
+}
+
+// ═══════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════
+// Track entry bar & type for scoring
+let pendingEntry=null; // {bar, type:'long'|'short'}
+
+function act(a){
+  if(!G.run)return;
+  const c=G.cs[G.bi];
+  if(a==='buy'){
+    if(!G.pos){
+      G.pos={type:'long',ep:c.c};
+      pendingEntry={bar:G.bi,type:'long'};
+      G.trades.push({bar:G.bi,type:'buy',price:c.c,pnl:null,entryBar:G.bi,entryType:'long'});
+      addLog(G.bi,'buy',c.c,null);notif('▲ 買いエントリー','buy');
+    }else if(G.pos.type==='short'){
+      const pnl=((G.pos.ep-c.c)/G.pos.ep)*100;
+      closeTrade(pnl,'buy',c.c);
+    }
+  }else if(a==='sell'){
+    if(!G.pos){
+      G.pos={type:'short',ep:c.c};
+      pendingEntry={bar:G.bi,type:'short'};
+      G.trades.push({bar:G.bi,type:'sell_entry',price:c.c,pnl:null,entryBar:G.bi,entryType:'short'});
+      addLog(G.bi,'sell_entry',c.c,null);notif('▼ 売りエントリー','sell');
+    }else if(G.pos.type==='long'){
+      const pnl=((c.c-G.pos.ep)/G.pos.ep)*100;
+      closeTrade(pnl,'sell',c.c);
+    }
+  }else{
+    notif('◆ ホールド','hold');
+  }
+  nextBar();
+}
+
+function closeTrade(pnl,closeType,closePrice){
+  G.rpnl+=pnl;
+  if(pnl>0){G.wins++;G.cl=0;}else{G.losses++;G.cl++;G.mcl=Math.max(G.mcl,G.cl);}
+  // Fill pnl into the entry trade record
+  const entry=G.trades.findLast(t=>t.pnl===null);
+  if(entry){entry.pnl=pnl;}
+  G.trades.push({bar:G.bi,type:closeType,price:closePrice,pnl:null});
+  addLog(G.bi,closeType,closePrice,pnl);
+  G.pos=null;pendingEntry=null;
+  // Recompute score
+  const{score}=calcFinalScore();G.score=score;
+  notif(pnl>=0?`✔ +${pnl.toFixed(2)}% 利確`:`✘ ${pnl.toFixed(2)}% 損切`,pnl>=0?'buy':'sell');
+}
+
+function nextBar(){
+  G.bi++;
+  if(G.bi>=G.cs.length){
+    if(G.pos){
+      const l=G.cs.at(-1);
+      const pnl=G.pos.type==='long'?((l.c-G.pos.ep)/G.pos.ep)*100:((G.pos.ep-l.c)/G.pos.ep)*100;
+      closeTrade(pnl,G.pos.type==='long'?'sell':'buy',l.c);
+    }
+    G.ci++;
+    if(G.ci>=5){endGame();return;}
+    loadChart(G.ci);return;
+  }
+  drawAll();updatePanel();
+}
+
+function addLog(bar,type,price,pnl){
+  const log=$('TLOG'),el=document.createElement('div');
+  const fmt=v=>v>10000?v.toFixed(0):v>100?v.toFixed(1):v>1?v.toFixed(3):v.toFixed(5);
+  let cls=type==='buy'?'buy':'sell';if(pnl!==null)cls+=pnl>=0?' p':' l';
+  el.className=`te ${cls}`;
+  const lbl=type==='buy'?'買入':type==='sell'?'売決済':type==='sell_entry'?'売入':'—';
+  el.innerHTML=`<span>${lbl} @${fmt(price)}</span><span>${pnl!==null?(pnl>=0?'+':'')+pnl.toFixed(2)+'%':'—'}</span>`;
+  log.prepend(el);if(log.children.length>10)log.lastChild.remove();
+}
+
+function notif(msg,type){const el=$('NF');el.textContent=msg;el.className=`notif ${type}`;clearTimeout(el._t);el._t=setTimeout(()=>el.className='notif hidden',1300);}
+
+// ═══════════════════════════════════════
+// RANK UI
+// ═══════════════════════════════════════
+function updateRankUI(){
+  const exp=ED.exp,r=getRank(exp);
+  const last=r.idx===RANKS.length-1,next=last?r.min:RANKS[r.idx+1].min;
+  const pct=last?100:Math.min(100,((exp-r.min)/(next-r.min))*100);
+  $('RI').textContent=r.icon;$('RN').textContent=r.name;$('RN').style.color=r.color;
+  $('REL').textContent=`${exp}/${last?'∞':next}`;
+  $('RBF').style.width=`${pct}%`;$('RBF').style.background=`linear-gradient(90deg,${r.color}77,${r.color})`;
+  $('RTE').textContent=exp;$('RGP').textContent=ED.games;$('RBS').textContent=ED.best??'—';
+  const cp=$('RCP');cp.textContent=r.cost===0?'±0':'-'+r.cost;cp.className=`rcp ${r.cost===0?'free':'cost'}`;
+  $('HRANK').textContent=`${r.icon} ${r.name}`;
+  $('srprev').textContent=`${r.icon} ${r.name} — ${exp} EXP`;
+}
+function showRankUp(r){$('RUICO').textContent=r.icon;$('RUNAM').textContent=r.name;$('RUNAM').style.color=r.color;$('RUO').classList.add('show');setTimeout(()=>$('RUO').classList.remove('show'),2600);}
+
+// ═══════════════════════════════════════
+// GAME FLOW
+// ═══════════════════════════════════════
+function selLv(lv,el){selLvl=lv;document.querySelectorAll('.lvcard').forEach(c=>c.classList.remove('sel','selex'));el.classList.add(lv===3?'selex':'sel');if(lv===3)el.classList.add('sel');}
+
+function startGame(){
+  G={lv:selLvl,ci:0,bi:0,cs:[],ind:{},pos:null,rpnl:0,trades:[],wins:0,losses:0,cl:0,mcl:0,score:0,totalTimingPenalty:0,run:true};
+  pendingEntry=null;
+  scenarios=[...SCENARIOS].sort(()=>Math.random()-.5).slice(0,5);
+  $('SS').classList.add('hidden');$('RES').classList.add('hidden');
+  $('TLOG').innerHTML='';
+  const hl=$('HLVL');hl.textContent=['','BEGINNER','ADVANCED','EXPERT'][G.lv];hl.className=`lvbadge ${G.lv===3?'ex':'bg'}`;
+  $('RSEC').style.display=G.lv===3?'block':'none';
+  $('HRANK').style.display=G.lv===3?'flex':'none';
+  if(G.lv===3)updateRankUI();
+  loadChart(0);
+}
+
+function loadChart(i){
+  const sc=scenarios[i];
+  G.cs=genCandles(sc,G.lv);
+  G.ind={ma20:calcMA(G.cs,20),ma50:calcMA(G.cs,50),ma100:calcMA(G.cs,100)};
+  G.bi=0;G.pos=null;pendingEntry=null;
+  $('CTITLE').textContent=`${sc.name} — ${sc.tf}`;
+  $('POSSTRIP').textContent='ポジションなし';$('POSSTRIP').className='pos-strip';
+  drawAll();updatePanel();
+}
+
+function endGame(){
+  G.run=false;
+  const{score,details,wrBonus,overtrade,tot,wr}=calcFinalScore();
+
+  const gc={S:'var(--cyan)',A:'var(--green)',B:'var(--yellow)',C:'var(--orange)',D:'var(--red)'};
+  let grade='D';
+  if(score>=85&&wr>=.65)grade='S';else if(score>=70)grade='A';else if(score>=50)grade='B';else if(score>=30)grade='C';
+  const fb={
+    S:'完璧なトレード。トレンド方向・出来高・MA乖離すべてを正しく判断できています。',
+    A:'優秀なパフォーマンス。タイミングが概ね正確です。乖離率の管理をさらに磨きましょう。',
+    B:'まずまずのトレード。トレンドに逆らうエントリーと出来高確認が改善ポイントです。',
+    C:'改善が必要です。MAの向きと出来高を確認してからエントリーする習慣をつけましょう。',
+    D:'トレンド方向とMAからの乖離を意識することが最優先課題です。BEGINNERから再挑戦を。',
+  };
+  $('GRD').textContent=grade;$('GRD').style.color=gc[grade];$('GRD').style.textShadow=`0 0 40px ${gc[grade]}`;
+  $('FBTXT').textContent=fb[grade];
+
+  // Score breakdown
+  let bdHtml=`
+    <div class="sbrow"><span>トレード損益スコア</span><b class="${G.rpnl>=0?'pos':'neg'}">${G.rpnl>=0?'+':''}${G.rpnl.toFixed(2)}% → ${Math.round(Math.max(-50,Math.min(60,G.rpnl*12)))}pt</b></div>
+    <div class="sbrow"><span>タイミングペナルティ</span><b class="neg">${details.reduce((s,d)=>s+d.penalties.filter(p=>p.pts<0).reduce((a,p)=>a+p.pts,0),0)}pt</b></div>
+    <div class="sbrow"><span>タイミングボーナス</span><b class="pos">+${details.reduce((s,d)=>s+d.penalties.filter(p=>p.pts>0).reduce((a,p)=>a+p.pts,0),0)}pt</b></div>
+    <div class="sbrow"><span>勝率補正 (${Math.round(wr*100)}%)</span><b class="${wrBonus>=0?'pos':'neg'}">${wrBonus>=0?'+':''}${wrBonus}pt</b></div>
+  `;
+  if(overtrade!==0)bdHtml+=`<div class="sbrow"><span>過剰取引ペナルティ</span><b class="neg">${overtrade}pt</b></div>`;
+  bdHtml+=`<div class="sbrow"><span>FINAL SCORE</span><b class="cy">${score}pt</b></div>`;
+  $('SCOREBD').innerHTML=bdHtml;
+
+  // Expert EXP
+  $('EXPCARD').innerHTML='';
+  if(G.lv===3){
+    const raw=Math.max(0,Math.min(100,score));
+    const prevExp=ED.exp;const pr=getRank(prevExp);
+    const net=raw-pr.cost;const newExp=Math.max(0,prevExp+net);
+    ED.exp=newExp;ED.games++;if(ED.best===null||score>ED.best)ED.best=score;saveED();
+    const nr=getRank(newExp);
+    let rHtml='';
+    if(nr.idx>pr.idx){
+      rHtml=`<div class="rchgrow"><span class="rchip" style="border:1px solid #ffd600;color:#ffd600">${pr.icon} ${pr.name}</span><span>→ 🎉</span><span class="rchip" style="border:1px solid ${nr.color};color:${nr.color}">${nr.icon} ${nr.name}</span><span style="color:var(--yellow);margin-left:6px">RANK UP！</span></div>`;
+      setTimeout(()=>showRankUp(nr),500);
+    }else{
+      rHtml=`<div class="rchgrow"><span class="rchip" style="border:1px solid ${nr.color};color:${nr.color}">${nr.icon} ${nr.name}</span><span style="color:var(--lo);margin-left:8px">累計 ${newExp} EXP</span></div>`;
+    }
+    $('EXPCARD').innerHTML=`<div class="expcard"><div class="exptitle">⚡ EXPERT EXP 更新</div><div class="exprow"><div class="expbd"><div class="expi"><div class="expiv" style="color:var(--cyan)">+${raw}</div><div class="expil">獲得EXP</div></div><div class="exparr">−</div><div class="expi"><div class="expiv" style="color:var(--red)">${pr.cost}</div><div class="expil">維持コスト</div></div><div class="exparr">=</div><div class="expi"><div class="expnet ${net>=0?'pos':'neg'}">${net>=0?'+':''}${net}</div><div class="expil">NET EXP</div></div></div><div style="text-align:right"><div style="font-size:9px;color:var(--lo);font-family:'Share Tech Mono',monospace">累計EXP</div><div style="font-size:18px;color:var(--cyan);font-family:'Share Tech Mono',monospace">${newExp}</div></div></div>${rHtml}</div>`;
+    updateRankUI();
+  }
+
+  $('RESGRID').innerHTML=`
+    <div class="rcard hi"><div class="rcardv" style="color:${gc[grade]}">${score}</div><div class="rcardl">GAME SCORE</div></div>
+    <div class="rcard"><div class="rcardv" style="color:${wr>=.6?'var(--green)':wr>=.4?'var(--yellow)':'var(--red)'}">${Math.round(wr*100)}%</div><div class="rcardl">WIN RATE</div></div>
+    <div class="rcard"><div class="rcardv" style="color:${G.rpnl>=0?'var(--green)':'var(--red)'}">${G.rpnl>=0?'+':''}${G.rpnl.toFixed(2)}%</div><div class="rcardl">TOTAL P&L</div></div>
+    <div class="rcard"><div class="rcardv">${tot}</div><div class="rcardl">TRADES</div></div>
+    <div class="rcard"><div class="rcardv" style="color:var(--green)">${G.wins}</div><div class="rcardl">WINS</div></div>
+    <div class="rcard"><div class="rcardv" style="color:var(--red)">${G.losses}</div><div class="rcardl">LOSSES</div></div>
+  `;
+  $('RES').classList.remove('hidden');
+}
+
+function restartGame(){$('RES').classList.add('hidden');startGame();}
+function backToTitle(){$('RES').classList.add('hidden');$('SS').classList.remove('hidden');updateRankUI();}
+
+document.addEventListener('keydown',e=>{
+  if(!G.run)return;
+  if(e.key==='ArrowUp'||e.key==='b')act('buy');
+  else if(e.key==='ArrowDown'||e.key==='s')act('sell');
+  else if(e.key===' '||e.key==='h'){e.preventDefault();act('hold');}
+});
+window.addEventListener('resize',()=>{if(G.run){drawAll();}});
+
+updateRankUI();
+</script>
+</body>
+</html>
